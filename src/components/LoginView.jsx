@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Car, Loader2, AlertCircle } from "lucide-react";
-import { authService } from "../api"; // api.js dosyasını import et
+import { login } from "../api"; // DÜZELTİLDİ: authService yerine login
+import { Loader2 } from "lucide-react";
 
 const LoginView = ({ onLogin }) => {
   const [username, setUsername] = useState("");
@@ -8,90 +8,42 @@ const LoginView = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
-      // Backend'e istek atıyoruz
-      const response = await authService.login(username, password);
+      const response = await login(username, password);
       
-      // Backend'den gelen yanıtı onLogin'e gönderiyoruz.
-      // NOT: Backend yanıtının yapısına göre (response.token vb.) burayı düzenleyebilirsin.
-      // Genelde { token: "eyJ...", user: {...} } döner.
-      // Eğer sadece token dönüyorsa, kullanıcı adını elle ekleyebiliriz.
-      
-      const userData = {
-        name: username, // veya response.username
-        role: response.role || "admin", // Backend role dönmüyorsa varsayılan
-        token: response.token || response // Token string olarak geliyorsa direkt response
-      };
+      // Null kontrolü yaparak veriyi al (Hata önleyici)
+      const userData = response?.data?.data;
 
-      onLogin(userData);
+      if (response.success && userData) {
+        onLogin({
+          name: userData.fullName || userData.username || "Kullanıcı",
+          role: userData.role
+        });
+      } else {
+        setError(response.message || "Giriş Başarısız.");
+      }
     } catch (err) {
-      console.error("Login hatası:", err);
-      setError("Giriş başarısız! Kullanıcı adı veya şifre hatalı.");
+      setError("Sunucuya bağlanılamadı. Backend çalışıyor mu?");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Car className="text-white" size={32} />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">BAĞLAN OTO</h1>
-          <p className="text-gray-600">Oto Care Center</p>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded flex items-center gap-2">
-            <AlertCircle size={20} />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Kullanıcı Adı</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="kullanici"
-              required
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="••••••••"
-              required
-              disabled={loading}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin" size={20} /> Giriş Yapılıyor...
-              </>
-            ) : (
-              "Giriş Yap"
-            )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">Bağlan Oto Bakım</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-3 border rounded-md" placeholder="Kullanıcı Adı" />
+          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 border rounded-md" placeholder="Şifre" />
+          {error && <p className="text-red-600 bg-red-50 p-2 rounded">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full flex justify-center py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            {loading ? <Loader2 className="animate-spin" /> : "Giriş Yap"}
           </button>
         </form>
       </div>
