@@ -1,25 +1,21 @@
 import React, { useState } from "react";
 import { Car, X, Check, ChevronLeft, ChevronRight, DollarSign, Droplets, Loader2 } from "lucide-react";
-// Bu kısımdaki importlar, data.js dosyasından çekilen tüm listeleri içeriyor olmalıdır.
-// products (olexProducts), parts (carParts), washServices ve windowGlassParts da buradan gelmeli
 import { washServices, windowGlassParts } from "../data";
-import { customerService, vehicleService, transactionService } from "../api";
+import { orderService } from "../api"; 
 
-// Component'in props'ları products (olexProducts) ve parts (carParts) içeriyor.
 const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
     const [step, setStep] = useState(1);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [loading, setLoading] = useState(false);
 
-    // Form datası
     const [formData, setFormData] = useState({
         customer: { name: "", phone: "", email: "" },
         vehicle: { brand: "", model: "", year: "", plate: "", color: "" },
         services: {
-            ppf: { selected: false, series: null, micron: null, parts: [], price: 0, name: "" }, // series ve micron bilgisi eklendi
-            ceramic: { selected: false, product: null, price: 0, name: "" }, // product bilgisi eklendi
-            windowFilm: { selected: false, product: null, parts: [], price: 0, name: "" }, // product ve parts bilgisi eklendi
-            wash: { selected: false, items: [], price: 0, name: "" } // items bilgisi eklendi
+            ppf: { selected: false, series: null, micron: null, parts: [], price: 0, name: "" },
+            ceramic: { selected: false, product: null, parts: [], price: 0, name: "" },
+            windowFilm: { selected: false, product: null, parts: [], price: 0, name: "" },
+            wash: { selected: false, items: [], price: 0, name: "" }
         },
         appointment: { date: "", time: "" },
         payment: { method: "", amount: 0, isPaid: false },
@@ -53,58 +49,28 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
         return total;
     };
 
-    // YENİ VE GÜNCELLENMİŞ FONKSİYON
     const handleComplete = async () => {
         setLoading(true);
         try {
-            // 1. İsim Soyisim Ayrıştırma
-            const nameParts = formData.customer.name.trim().split(" ");
-            const lastName = nameParts.length > 1 ? nameParts.pop() : "";
-            const firstName = nameParts.join(" ");
+            const selectedServices = [];
 
-            // 2. Müşteri Oluşturma
-            const customerPayload = {
-                firstName: firstName,
-                lastName: lastName,
-                phoneNumber: formData.customer.phone,
-                email: formData.customer.email || null
-            };
-            
-            const createdCustomer = await customerService.create(customerPayload);
-            const customerId = createdCustomer.id || createdCustomer.data?.id || createdCustomer;
-
-            // 3. Araç Oluşturma
-            const vehiclePayload = {
-                plateNumber: formData.vehicle.plate,
-                brand: formData.vehicle.brand,
-                model: formData.vehicle.model,
-                customerId: customerId
-            };
-
-            const createdVehicle = await vehicleService.create(vehiclePayload);
-            const vehicleId = createdVehicle.id || createdVehicle.data?.id || createdVehicle;
-            
-            // 4. ***YENİ KISIM***: Transaction Items Hazırlama
-            const transactionItems = [];
-            const serviceNamesSummary = [];
-
-            // A. Yıkama Hizmetleri
+            // A. Yıkama
             if (formData.services.wash?.selected && formData.services.wash.items.length > 0) {
                 formData.services.wash.items.forEach(washId => {
                    const service = washServices.find(w => w.id === washId);
                    if(service) {
-                     transactionItems.push({
+                     selectedServices.push({
                        category: "Yıkama",
-                       name: service.name,
-                       processApplied: service.name,
+                       product: service.name,
+                       spec: "Standart",
+                       part: "Tüm Araç",
                        price: service.price
                      });
-                     serviceNamesSummary.push(service.name);
                    }
                 });
             }
 
-            // B. PPF (Boya Koruma Filmi)
+            // B. PPF
             if (formData.services.ppf?.selected && formData.services.ppf.series && formData.services.ppf.parts.length > 0) {
                 const seriesName = formData.services.ppf.series.name;
                 const micron = formData.services.ppf.micron;
@@ -112,27 +78,43 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                 formData.services.ppf.parts.forEach(partId => {
                    const part = parts.find(p => p.id === partId);
                    if(part) {
-                     transactionItems.push({
+                     selectedServices.push({
                        category: "PPF",
-                       name: `${seriesName} (${micron}μ)`,
-                       processApplied: part.name, // "Kaput", "Sol Ön Kapı" vb.
-                       price: part.price // O parça için fiyat
+                       product: `${seriesName} - ${part.name}`,
+                       spec: `${micron} micron`,
+                       part: part.name,
+                       price: part.price
                      });
                    }
                 });
-                serviceNamesSummary.push(`PPF ${seriesName} (${formData.services.ppf.parts.length} Parça)`);
             }
 
-            // C. Seramik Kaplama
+            // C. Seramik
             if (formData.services.ceramic?.selected && formData.services.ceramic.product) {
                  const product = formData.services.ceramic.product;
-                 transactionItems.push({
-                   category: "Seramik",
-                   name: product.name,
-                   processApplied: `Tüm Araç (${product.duration})`,
-                   price: product.price
-                 });
-                 serviceNamesSummary.push(product.name);
+                 
+                 if (formData.services.ceramic.parts && formData.services.ceramic.parts.length > 0) {
+                     formData.services.ceramic.parts.forEach(partId => {
+                        const part = parts.find(p => p.id === partId);
+                        if (part) {
+                            selectedServices.push({
+                                category: "Seramik",
+                                product: `${product.name} - ${part.name}`,
+                                spec: product.duration,
+                                part: part.name,
+                                price: Math.round(part.price * 0.5) 
+                            });
+                        }
+                     });
+                 } else {
+                     selectedServices.push({
+                        category: "Seramik",
+                        product: `${product.name} - Komple`,
+                        spec: product.duration,
+                        part: "Tüm Araç",
+                        price: product.price
+                     });
+                 }
             }
 
             // D. Cam Filmi
@@ -142,41 +124,46 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                 formData.services.windowFilm.parts.forEach(partId => {
                    const part = windowGlassParts.find(p => p.id === partId);
                    if(part) {
-                     transactionItems.push({
+                     selectedServices.push({
                        category: "Cam Filmi",
-                       name: filmName,
-                       processApplied: part.name,
+                       product: `${filmName} - ${part.name}`,
+                       spec: "Standart",
+                       part: part.name,
                        price: part.price
                      });
                    }
                 });
-                serviceNamesSummary.push(`Cam Filmi ${filmName} (${formData.services.windowFilm.parts.length} Cam)`);
             }
-            
-            // 5. İşlem Açıklaması ve İşlem Oluşturma (Yeni Payload Yapısı)
-            const description = `${serviceNamesSummary.join(", ")} - Randevu: ${formData.appointment.date} ${formData.appointment.time}`;
 
-            const transactionPayload = {
-                description: description,
-                vehicleId: vehicleId,
-                personnelId: 0, // Personel seçimi sonradan atanabilir
-                serviceDefinitionId: null, // Manuel işlem olduğu için null
+            const fullOrderPayload = {
+                customerName: formData.customer.name,
+                customerPhone: formData.customer.phone,
+                customerEmail: formData.customer.email,
+                plateNumber: formData.vehicle.plate,
+                brand: formData.vehicle.brand,
+                model: formData.vehicle.model,
+                color: formData.vehicle.color,
+                year: formData.vehicle.year,
+                personnelId: 0,
+                date: new Date(`${formData.appointment.date}T${formData.appointment.time}`).toISOString(),
                 totalPrice: calculateTotal(),
-                items: transactionItems // <<< BURASI YENİ EKLEME
+                paymentMethod: formData.payment.method,
+                isPaid: formData.payment.isPaid,
+                selectedServices: selectedServices
             };
 
-            const createdTransaction = await transactionService.create(transactionPayload);
+            await orderService.create(fullOrderPayload);
 
-            alert("Müşteri ve İşlem başarıyla oluşturuldu!");
+            alert("Sipariş Başarıyla Oluşturuldu!");
             
             const newFrontendOrder = {
-                id: createdTransaction.id || Math.floor(Math.random() * 1000),
+                id: Math.floor(Math.random() * 10000), 
                 customer: formData.customer.name,
                 vehicle: `${formData.vehicle.brand} ${formData.vehicle.model}`,
                 plate: formData.vehicle.plate,
-                status: "pending",
+                status: "Pending",
                 date: formData.appointment.date,
-                services: serviceNamesSummary, // Özet liste gösterimi için
+                services: selectedServices.map(s => s.product),
                 totalPrice: calculateTotal(),
                 assignedStaff: [],
                 payment: formData.payment.isPaid ? "paid" : "pending"
@@ -186,7 +173,7 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
             onClose();
 
         } catch (error) {
-            console.error("Kayıt sırasında hata:", error);
+            console.error("Sipariş oluşturma hatası:", error);
             alert("Kayıt başarısız: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
@@ -206,7 +193,6 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
         </div>
     );
 
-    // Zorunlu alanların kontrolü
     const isStep1Valid = formData.customer.name.trim() !== "" && formData.customer.phone.trim() !== "" && formData.vehicle.brand.trim() !== "" && formData.vehicle.model.trim() !== "" && formData.vehicle.plate.trim() !== "";
     const isStep2Valid = calculateTotal() > 0;
     const isStep3Valid = formData.appointment.date !== "" && formData.appointment.time !== "";
@@ -251,7 +237,7 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                         </div>
                     )}
 
-                    {/* STEP 2: Hizmet Seçimi */}
+                    {/* STEP 2: Hizmet Seçimi - (Değişmedi, aynen devam) */}
                     {step === 2 && (
                         <div className="space-y-6">
                             <h3 className="text-xl font-semibold mb-4">Hizmet Seçimi</h3>
@@ -278,7 +264,8 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                                 </div>
                             </div>
 
-                            {/* PPF KAPLAMA - products ve parts kullanımı */}
+                            {/* PPF ve diğerleri için önceki JSX yapısı aynı şekilde korunmuştur... */}
+                            {/* PPF KAPLAMA */}
                             <div className="border-2 border-purple-200 rounded-lg p-6 bg-purple-50">
                                 <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-purple-700">
                                     <Car size={18} /> OLEX PPF (Paint Protection Film)
@@ -288,7 +275,6 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                                         value={formData.services.ppf?.series?.id || ""}
                                         onChange={(e) => {
                                             const series = products.ppf.series.find(s => s.id === e.target.value);
-                                            // Parça fiyatı eklenmediği için basePrice burada kullanılmıyor, sadece seriyi seçiyoruz.
                                             if (series) {
                                                 setFormData({...formData, services: {...formData.services, ppf: {selected: true, series: series, micron: null, parts: formData.services.ppf?.parts || [], price: 0}}});
                                             } else {
@@ -320,7 +306,6 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                                                     onChange={(e) => {
                                                         const currentParts = formData.services.ppf?.parts || [];
                                                         const newParts = e.target.checked ? [...currentParts, part.id] : currentParts.filter(p => p !== part.id);
-                                                        // Toplam fiyatı hesapla
                                                         const totalPrice = newParts.reduce((sum, partId) => sum + (parts.find(p => p.id === partId)?.price || 0), 0);
                                                         setFormData({...formData, services: {...formData.services, ppf: {...formData.services.ppf, parts: newParts, price: totalPrice, selected: newParts.length > 0}}});
                                                     }}/>
@@ -333,23 +318,43 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                                 </div>
                             </div>
 
-                            {/* SERAMİK KAPLAMA - products kullanımı */}
+                            {/* SERAMİK KAPLAMA */}
                             <div className="border-2 border-green-200 rounded-lg p-6 bg-green-50">
                                 <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-green-700">
                                     <Car size={18} /> Seramik Kaplama
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    {products.ceramic.products.map(product => (
-                                        <button key={product.id} onClick={() => setFormData({...formData, services: {...formData.services, ceramic: {selected: true, product: product, price: product.price, name: product.name}}})}
-                                        className={`p-3 border-2 rounded text-left bg-white ${formData.services.ceramic?.product?.id === product.id ? "border-green-600 bg-green-50" : ""}`}>
-                                            <div className="font-bold">{product.name}</div>
-                                            <div className="text-green-600 font-bold">₺{product.price.toLocaleString()}</div>
-                                        </button>
-                                    ))}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        {products.ceramic.products.map(product => (
+                                            <button key={product.id} onClick={() => setFormData({...formData, services: {...formData.services, ceramic: {selected: true, product: product, price: product.price, name: product.name, parts: []}}})}
+                                            className={`p-3 border-2 rounded text-left bg-white ${formData.services.ceramic?.product?.id === product.id ? "border-green-600 bg-green-50" : ""}`}>
+                                                <div className="font-bold">{product.name}</div>
+                                                <div className="text-green-600 font-bold">₺{product.price.toLocaleString()}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    {formData.services.ceramic?.product && (
+                                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto bg-white p-3 rounded border">
+                                            {parts.map((part) => (
+                                                <label key={part.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                                                    <input type="checkbox" className="w-4 h-4" checked={formData.services.ceramic?.parts?.includes(part.id)}
+                                                        onChange={(e) => {
+                                                            const currentParts = formData.services.ceramic?.parts || [];
+                                                            const newParts = e.target.checked ? [...currentParts, part.id] : currentParts.filter(p => p !== part.id);
+                                                            const totalPrice = newParts.reduce((sum, partId) => sum + Math.round((parts.find(p => p.id === partId)?.price || 0) * 0.5), 0);
+                                                            setFormData({...formData, services: {...formData.services, ceramic: {...formData.services.ceramic, parts: newParts, price: totalPrice, selected: newParts.length > 0}}});
+                                                        }}/>
+                                                    <span className="flex-1 text-sm">{part.name}</span>
+                                                    <span className="text-xs font-bold text-green-600">₺{Math.round(part.price * 0.5)}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* CAM FİLMİ - windowGlassParts kullanımı */}
+                            {/* CAM FİLMİ */}
                             <div className="border-2 border-blue-200 rounded-lg p-6 bg-blue-50">
                                 <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-blue-700">
                                     <Car size={18} /> OLEX Cam Filmleri
@@ -359,7 +364,6 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                                         value={formData.services.windowFilm?.product?.id || ""}
                                         onChange={(e) => {
                                             const product = products.windowFilm.products.find(p => p.id === e.target.value);
-                                            // Cam seçimi fiyatı belirleyeceği için burada price 0'a çekilir.
                                             if(product) {
                                                 setFormData({...formData, services: {...formData.services, windowFilm: {selected: true, product: product, parts: formData.services.windowFilm.parts || [], price: 0, name: `Cam Filmi ${product.name}`}}})
                                             } else {
@@ -389,14 +393,14 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                                     )}
                                 </div>
                             </div>
-
-                            <div className="bg-blue-600 text-white rounded-lg p-4 font-bold text-xl text-center shadow-lg">
+                             
+                             <div className="bg-blue-600 text-white rounded-lg p-4 font-bold text-xl text-center shadow-lg">
                                 Toplam Tutar: ₺{calculateTotal().toLocaleString()}
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 3: Randevu */}
+                    {/* STEP 3 ve 4 (Randevu ve Ödeme) aynı kalabilir */}
                     {step === 3 && (
                         <div className="space-y-6">
                             <h3 className="text-xl font-semibold mb-4">Randevu Seçimi</h3>
@@ -423,7 +427,6 @@ const NewCustomerFlow = ({ onClose, onOrderCreate, products, parts }) => {
                         </div>
                     )}
 
-                    {/* STEP 4: Ödeme ve Onay */}
                     {step === 4 && (
                         <div className="space-y-6">
                             <h3 className="text-xl font-semibold mb-4">Ödeme Bilgileri</h3>

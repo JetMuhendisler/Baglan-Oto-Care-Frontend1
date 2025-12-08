@@ -22,22 +22,21 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Gelen { data, success } yapısını çöz
+// Response Interceptor
 api.interceptors.response.use(
   (response) => {
-    // Eğer yanıt { data: ..., success: true } formatındaysa, sadece data'yı döndür
+    // Backend standardına göre response parse işlemi
     if (response.data && response.data.success === true && response.data.data !== undefined) {
       return response.data.data;
     }
-    // Eğer success true ama data yoksa (örn: silme işlemi), true dön
+    // Sadece success: true dönüyorsa
     if (response.data && response.data.success === true) {
         return true; 
     }
-    // Diğer durumlar (örn: Auth endpointi farklı formatta olabilir)
     return response.data;
   },
   (error) => {
-    // Hata mesajını yakala ve fırlat
+    // Hata durumunda konsola bas, ama uygulamayı çökertme
     console.error("API Hatası:", error.response?.data?.message || error.message);
     return Promise.reject(error);
   }
@@ -58,7 +57,6 @@ export const authService = {
 // --- CUSTOMER SERVICES ---
 export const customerService = {
   getAll: async (search = "") => {
-    // Artık .data dememize gerek yok, interceptor hallediyor
     return await api.get(`/api/musteri?search=${search}`);
   },
   create: async (data) => {
@@ -85,7 +83,7 @@ export const vehicleService = {
   },
 };
 
-// --- TRANSACTION (İŞLEM) SERVICES ---
+// --- TRANSACTION (MUHASEBE/İŞLEM) SERVICES ---
 export const transactionService = {
   getAll: async (search = "") => {
     return await api.get(`/api/islem?search=${search}`);
@@ -99,17 +97,34 @@ export const transactionService = {
   delete: async (id) => {
     await api.delete(`/api/islem/${id}`);
   },
-   createFullOrder: async (orderPayload) => {
-    // Backend controller'da oluşturduğumuz endpoint yolu: /api/transactions/create-full-order
-    const response = await axios.post(`api/transactions/create-full-order`, orderPayload);
-    return response.data;}
+};
 
+// --- ORDER (SİPARİŞ) SERVICES ---
+export const orderService = {
+  getAll: async () => {
+    return await api.get("/api/siparis");
+  },
+  create: async (data) => {
+    return await api.post("/api/siparis", data);
+  },
+  delete: async (id) => {
+    await api.delete(`/api/siparis/${id}`);
+  },
+  search: async (text) => {
+    return await api.get(`/api/siparis/ara/${text}`);
+  }
 };
 
 // --- PERSONNEL SERVICES ---
 export const personnelService = {
   getAll: async (search = "") => {
     return await api.get(`/api/personel?search=${search}`);
+  },
+  create: async (data) => {
+    return await api.post("/api/personel", data);
+  },
+  delete: async (id) => {
+    return await api.delete(`/api/personel/${id}`);
   }
 };
 
