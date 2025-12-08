@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import LoginView from "./components/LoginView";
 import Dashboard from "./Dashboard";
 import { olexProducts as initialProducts, carParts as initialParts } from "./data";
@@ -11,7 +11,7 @@ const App = () => {
   const [products, setProducts] = useState(initialProducts);
   const [parts, setParts] = useState(initialParts);
   
-  // Örnek veriler (Backend'e bağlanana kadar bunlar kalabilir)
+  // Örnek veriler
   const [orders, setOrders] = useState([{
       id: 1,
       customer: "Ahmet Yılmaz",
@@ -33,34 +33,24 @@ const App = () => {
       id: 1, type: "income", description: "PPF Kaplama - Ahmet Yılmaz (#1)", amount: 18300, date: "2025-10-20", category: "Hizmet", orderId: 1 
   }]);
 
-  // Uygulama ilk açıldığında Token kontrolü
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
-      setCurrentView("dashboard");
-    }
-  }, []);
+  // --- DEĞİŞİKLİK ---
+  // Buradaki useEffect kaldırıldı. 
+  // Böylece sayfa her yenilendiğinde state sıfırlanır ve uygulama 'login' ekranında başlar.
 
   const handleLogin = (userData) => {
-    // Token'ı kaydet (userData içinden hangisi token ise onu almalısın)
-    // Eğer backend { token: "xyz..." } dönüyorsa:
+    // Token'ı localStorage'a kaydediyoruz ki API istekleri çalışmaya devam etsin
     if (userData.token) {
         localStorage.setItem("token", userData.token);
     }
     
-    // Kullanıcı bilgisini sakla
-    localStorage.setItem("user", JSON.stringify(userData));
-    
+    // Kullanıcı bilgisini state'e atıyoruz ama localStorage'dan geri yükleme yapmayacağız
     setUser(userData);
     setCurrentView("dashboard");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem("user"); // Temizlik için silebiliriz
     setUser(null);
     setCurrentView("login");
   };
@@ -72,7 +62,6 @@ const App = () => {
   return (
     <Dashboard
       user={user}
-      // setUser yerine handleLogout mekanizmasını kullanıyoruz
       setUser={(u) => {
         if (!u) handleLogout();
         else setUser(u);
