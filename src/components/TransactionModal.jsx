@@ -4,32 +4,32 @@ import { X, ArrowDown, ArrowUp } from "lucide-react";
 const AddTransactionModal = ({ onClose, onAdd }) => {
   const [data, setData] = useState({
     type: "income", // "income" veya "expense"
-    category: "",   // Başlık olarak kullanılacak
+    category: "",   
     description: "",
     amount: "",
     date: new Date().toISOString().split("T")[0],
   });
 
   const categories = {
-    income: ["Ek Hizmet", "Bahşiş", "Diğer Gelir"],
-    expense: ["Malzeme", "Kira", "Fatura", "Yemek", "Maaş Ödemesi", "Diğer Gider"],
+    income: ["Hizmet", "Ek Gelir", "Bahşiş", "Diğer"],
+    expense: ["Malzeme", "Kira", "Fatura", "Yemek", "Maaş", "Diğer"],
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Yeni Muhasebe Kaydı</h2>
+          <h2 className="text-2xl font-bold">Yeni İşlem Ekle</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
         </div>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setData({ ...data, type: "income" })} className={`p-3 rounded-lg border-2 ${data.type === "income" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200"}`}>
-              <ArrowDown size={20} className="mx-auto mb-1" /> Gelir
+            <button onClick={() => setData({ ...data, type: "income" })} className={`p-3 rounded-lg border-2 flex justify-center items-center gap-2 ${data.type === "income" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200"}`}>
+              <ArrowDown size={20} /> Gelir
             </button>
-            <button onClick={() => setData({ ...data, type: "expense" })} className={`p-3 rounded-lg border-2 ${data.type === "expense" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200"}`}>
-              <ArrowUp size={20} className="mx-auto mb-1" /> Gider
+            <button onClick={() => setData({ ...data, type: "expense" })} className={`p-3 rounded-lg border-2 flex justify-center items-center gap-2 ${data.type === "expense" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200"}`}>
+              <ArrowUp size={20} /> Gider
             </button>
           </div>
 

@@ -1,81 +1,55 @@
-import React, { useState } from "react";
-import LoginView from "./components/LoginView";
-import Dashboard from "./Dashboard";
+import React, { useState, useEffect } from "react";
+import LoginView from "./views/Login"; // Düzeltildi: "./components/..." yerine LoginView'i direkt import ediyoruz
+import Dashboard from "./views/Dashboard"; // views klasöründen çağırıyoruz
 import { olexProducts as initialProducts, carParts as initialParts } from "./data";
 
 const App = () => {
-  const [currentView, setCurrentView] = useState("login");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Veriler
+  // Ayarlar verilerini App'te tutmak ideal
   const [products, setProducts] = useState(initialProducts);
   const [parts, setParts] = useState(initialParts);
-  
-  // Örnek veriler
-  const [orders, setOrders] = useState([{
-      id: 1,
-      customer: "Ahmet Yılmaz",
-      vehicle: "BMW 320i",
-      plate: "06 ABC 123",
-      status: "progress",
-      date: "2025-10-20",
-      services: ["Araba Yıkama", "PPF Kaplama - OLEX Carat"],
-      assignedStaff: ["Mehmet Çelik"],
-      totalPrice: 18300,
-      payment: "paid",
-  }]);
-
-  const [staff, setStaff] = useState([{ 
-      id: 1, name: "Mehmet Çelik", role: "PPF Uzmanı", salary: 25000, completedJobs: 15, jobs: [1] 
-  }]);
-
-  const [transactions, setTransactions] = useState([{ 
-      id: 1, type: "income", description: "PPF Kaplama - Ahmet Yılmaz (#1)", amount: 18300, date: "2025-10-20", category: "Hizmet", orderId: 1 
-  }]);
-
-  // --- DEĞİŞİKLİK ---
-  // Buradaki useEffect kaldırıldı. 
-  // Böylece sayfa her yenilendiğinde state sıfırlanır ve uygulama 'login' ekranında başlar.
 
   const handleLogin = (userData) => {
-    // Token'ı localStorage'a kaydediyoruz ki API istekleri çalışmaya devam etsin
     if (userData.token) {
         localStorage.setItem("token", userData.token);
+        localStorage.setItem("user", JSON.stringify(userData));
     }
-    
-    // Kullanıcı bilgisini state'e atıyoruz ama localStorage'dan geri yükleme yapmayacağız
     setUser(userData);
-    setCurrentView("dashboard");
+    setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user"); // Temizlik için silebiliriz
+    localStorage.removeItem("user");
     setUser(null);
-    setCurrentView("login");
+    setIsAuthenticated(false);
   };
 
-  if (currentView === "login") {
+  // Sayfa yenilendiğinde kullanıcıyı kontrol et
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    if (token && savedUser) {
+      setUser(savedUser);
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+
+  if (!isAuthenticated) {
     return <LoginView onLogin={handleLogin} />;
   }
 
   return (
     <Dashboard
       user={user}
-      setUser={(u) => {
-        if (!u) handleLogout();
-        else setUser(u);
-      }}
+      onLogout={handleLogout} 
       products={products}
       setProducts={setProducts}
       parts={parts}
       setParts={setParts}
-      orders={orders}
-      setOrders={setOrders}
-      staff={staff}
-      setStaff={setStaff}
-      transactions={transactions}
-      setTransactions={setTransactions}
     />
   );
 };
