@@ -14,14 +14,14 @@ const LoginView = ({ onLogin }) => {
     setError(null);
 
     try {
-      // Backend'e istek atıyoruz
       const response = await authService.login(username, password);
-      
-      console.log("Login Başarılı:", response);
+      console.log("Login Yanıtı:", response);
 
-      // Token kontrolü (Backend yapısına göre değişebilir)
-      // Genelde response direkt TokenDto (Token, Role, FullName) olarak gelir (Interceptor sayesinde)
-      const token = response.Token || response.token;
+      // Yanıt boşsa veya null ise
+      if (!response) throw new Error("Sunucudan yanıt alınamadı!");
+
+      // Token'ı farklı formatlarda arayalım (Büyük/Küçük harf)
+      const token = response.Token || response.token || response.data?.token;
       
       if (token) {
         const userData = {
@@ -29,24 +29,14 @@ const LoginView = ({ onLogin }) => {
           role: response.Role || response.role || "Admin",
           token: token
         };
-        // Ana App bileşenine bildir
         onLogin(userData);
       } else {
-        throw new Error("Gelen veride Token bulunamadı!");
+        throw new Error("Kullanıcı adı veya şifre hatalı!");
       }
 
     } catch (err) {
-      console.error("Login Hatası:", err);
-      // Kullanıcıya anlamlı hata mesajı göster
-      let msg = "Giriş başarısız.";
-      if (err.response) {
-        // Backend'den gelen hata mesajı
-        msg = err.response.data?.Message || err.response.data || "Sunucu hatası (500)";
-        if(err.response.status === 401) msg = "Kullanıcı adı veya şifre hatalı!";
-      } else if (err.code === "ERR_NETWORK") {
-        msg = "Sunucuya bağlanılamadı! Backend çalışıyor mu?";
-      }
-      setError(msg);
+      console.error(err);
+      setError(err.message || "Giriş yapılamadı.");
     } finally {
       setLoading(false);
     }
@@ -73,42 +63,21 @@ const LoginView = ({ onLogin }) => {
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="admin"
-              required
-            />
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="admin" required />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="••••••••"
-              required
-            />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="••••••••" required />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-bold flex items-center justify-center gap-2 disabled:opacity-70"
-          >
-            {loading ? (
-              <> <Loader2 className="animate-spin" size={20} /> Giriş Yapılıyor... </>
-            ) : (
-              "Giriş Yap"
-            )}
+          <button type="submit" disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2 disabled:opacity-70">
+            {loading ? <><Loader2 className="animate-spin" size={20} /> Giriş...</> : "Giriş Yap"}
           </button>
         </form>
-        
-        <div className="mt-6 text-center text-xs text-gray-400">
-            &copy; 2025 Bağlan Oto Care Sistemleri
-        </div>
       </div>
     </div>
   );

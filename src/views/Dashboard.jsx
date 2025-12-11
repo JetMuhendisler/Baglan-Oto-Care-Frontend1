@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Car, LogOut, ClipboardList, Check, Clock, TrendingUp, Users, DollarSign, Plus, Search, Eye, Trash2, Settings, Loader2, AlertTriangle, Save, Shield, Sun, Layers } from "lucide-react";
 
-// Modallar (Dosya yolları sabit)
+// Modallar
 import NewOrderWizard from "./NewOrderWizard"; 
 import OrderDetailModal from "../components/OrderDetailModal";
 import { StaffDetailModal, AddStaffModal } from "../components/StaffModals";
@@ -20,9 +20,9 @@ const safeDate = (dateString) => {
   } catch { return dateString; }
 };
 
-// --- İÇ BİLEŞENLER (Parçalanmış Yapı) ---
+// --- İÇ BİLEŞENLER ---
 
-// 1. SİPARİŞ LİSTESİ (Plaka Düzeltildi)
+// 1. SİPARİŞ LİSTESİ
 const OrderList = ({ orders, onEdit, onDelete }) => {
   const [search, setSearch] = useState("");
 
@@ -35,19 +35,13 @@ const OrderList = ({ orders, onEdit, onDelete }) => {
     <div>
       <div className="mb-4 relative">
         <Search className="absolute left-3 top-2.5 text-gray-400" size={18}/>
-        <input 
-          className="pl-10 border p-2 rounded-lg w-full md:w-1/3 outline-none focus:ring-2 focus:ring-blue-500" 
-          placeholder="Plaka veya Müşteri Ara..." 
-          value={search} 
-          onChange={e => setSearch(e.target.value)} 
-        />
+        <input className="pl-10 border p-2 rounded-lg w-full md:w-1/3 outline-none focus:ring-2 focus:ring-blue-500" 
+          placeholder="Plaka veya Müşteri Ara..." value={search} onChange={e => setSearch(e.target.value)} />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-500 text-sm border-b">
-            <tr>
-              {["İş No", "Müşteri", "Araç", "Plaka", "Tutar", "Durum", "Tarih", "İşlem"].map(h => <th key={h} className="p-3">{h}</th>)}
-            </tr>
+            <tr>{["İş No", "Müşteri", "Araç", "Plaka", "Tutar", "Durum", "Tarih", "İşlem"].map(h => <th key={h} className="p-3">{h}</th>)}</tr>
           </thead>
           <tbody className="divide-y text-sm">
             {filtered.map(order => (
@@ -55,16 +49,9 @@ const OrderList = ({ orders, onEdit, onDelete }) => {
                 <td className="p-3 font-medium">#{order.id}</td>
                 <td className="p-3">{order.customer}</td>
                 <td className="p-3">{order.vehicle}</td>
-                {/* PLAKA GÖSTERİMİ */}
-                <td className="p-3 font-mono bg-gray-100 rounded w-fit px-2 text-gray-700 font-bold">
-                  {order.plate !== "---" ? order.plate : <span className="text-gray-400">---</span>}
-                </td>
+                <td className="p-3 font-mono bg-gray-100 rounded w-fit px-2 text-gray-700 font-bold">{order.plate}</td>
                 <td className="p-3 font-bold text-green-600">₺{order.totalPrice?.toLocaleString()}</td>
-                <td className="p-3">
-                  <span className={`px-2 py-1 rounded text-xs ${order.status === "Completed" || order.status === "Tamamlandı" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
-                    {order.status}
-                  </span>
-                </td>
+                <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${order.status === "Completed" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>{order.status}</span></td>
                 <td className="p-3 text-gray-500">{order.date}</td>
                 <td className="p-3 flex gap-2">
                   <button onClick={() => onEdit(order)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Eye size={18}/></button>
@@ -80,36 +67,21 @@ const OrderList = ({ orders, onEdit, onDelete }) => {
   );
 };
 
-// 2. PERSONEL LİSTESİ (Silme Butonu Aktif)
+// 2. PERSONEL LİSTESİ
 const StaffList = ({ staff, onAdd, onDetail, onDelete }) => {
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <button onClick={onAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
-          <Plus size={18}/> Yeni Personel
-        </button>
+        <button onClick={onAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"><Plus size={18}/> Yeni Personel</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {staff.map(p => (
           <div key={p.id} className="border p-4 rounded-lg hover:shadow-md transition-shadow bg-white flex justify-between items-start group">
             <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => onDetail(p)}>
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold uppercase">
-                {p.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-800">{p.name}</h3>
-                <p className="text-xs text-gray-500">{p.role}</p>
-                <p className="text-xs text-green-600 font-bold mt-1">₺{p.salary?.toLocaleString()}</p>
-              </div>
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold uppercase">{p.name ? p.name.charAt(0) : "U"}</div>
+              <div><h3 className="font-bold text-gray-800">{p.name}</h3><p className="text-xs text-gray-500">{p.role}</p><p className="text-xs text-green-600 font-bold mt-1">₺{p.salary?.toLocaleString()}</p></div>
             </div>
-            {/* SİLME BUTONU */}
-            <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(p.id); }} 
-              className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
-              title="Personeli Sil"
-            >
-              <Trash2 size={18}/>
-            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(p.id); }} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"><Trash2 size={18}/></button>
           </div>
         ))}
         {staff.length === 0 && <div className="col-span-3 text-center text-gray-500">Henüz personel eklenmemiş.</div>}
@@ -124,29 +96,22 @@ const AccountingView = ({ expenses, onAdd, onDelete }) => {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">Gelir / Gider Listesi</h2>
-        <button onClick={onAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
-          <Plus size={18}/> Yeni Kayıt
-        </button>
+        <button onClick={onAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"><Plus size={18}/> Yeni Kayıt</button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-500 text-sm border-b">
-            <tr>
-              {["Tarih", "Açıklama", "Kategori", "Tutar", ""].map(h => <th key={h} className="p-3">{h}</th>)}
-            </tr>
+            <tr>{["No", "Tarih", "Açıklama", "Kategori", "Tutar", ""].map(h => <th key={h} className="p-3">{h}</th>)}</tr>
           </thead>
           <tbody className="divide-y text-sm">
             {expenses.map(e => (
               <tr key={e.id} className="hover:bg-gray-50">
+                <td className="p-3 font-mono text-gray-400">#{e.id}</td>
                 <td className="p-3 text-gray-600">{e.date}</td>
                 <td className="p-3 font-medium">{e.title}</td>
                 <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${e.type === "income" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{e.category}</span></td>
-                <td className={`p-3 font-bold ${e.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                  {e.type === "income" ? "+" : "-"}₺{e.amount.toLocaleString()}
-                </td>
-                <td className="p-3 text-right">
-                  <button onClick={() => onDelete(e.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
-                </td>
+                <td className={`p-3 font-bold ${e.type === "income" ? "text-green-600" : "text-red-600"}`}>{e.type === "income" ? "+" : "-"}₺{e.amount.toLocaleString()}</td>
+                <td className="p-3 text-right"><button onClick={() => onDelete(e.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
               </tr>
             ))}
           </tbody>
@@ -157,138 +122,62 @@ const AccountingView = ({ expenses, onAdd, onDelete }) => {
   );
 };
 
-// 4. AYARLAR BİLEŞENİ (Fiyat Düzenleme Aktif)
+// 4. AYARLAR BİLEŞENİ
 const SettingsPanel = ({ products, setProducts, parts, setParts }) => {
   const updatePrice = (type, id, val) => {
     const price = parseFloat(val) || 0;
-    
-    if (type === 'part') {
-      setParts(prev => prev.map(p => p.id === id ? { ...p, price } : p));
-    } 
-    else if (type === 'ppf') {
-      setProducts(prev => ({
-        ...prev,
-        ppf: { ...prev.ppf, series: prev.ppf.series.map(s => s.id === id ? { ...s, basePrice: price } : s) }
-      }));
-    } 
-    else if (type === 'window') {
-      setProducts(prev => ({
-        ...prev,
-        windowFilm: { ...prev.windowFilm, products: prev.windowFilm.products.map(p => p.id === id ? { ...p, price } : p) }
-      }));
-    } 
-    else if (type === 'ceramic') {
-      setProducts(prev => ({
-        ...prev,
-        ceramic: { ...prev.ceramic, products: prev.ceramic.products.map(p => p.id === id ? { ...p, price } : p) }
-      }));
-    }
+    if (type === 'part') setParts(prev => prev.map(p => p.id === id ? { ...p, price } : p));
+    else if (type === 'ppf') setProducts(prev => ({ ...prev, ppf: { ...prev.ppf, series: prev.ppf.series.map(s => s.id === id ? { ...s, basePrice: price } : s) } }));
+    else if (type === 'window') setProducts(prev => ({ ...prev, windowFilm: { ...prev.windowFilm, products: prev.windowFilm.products.map(p => p.id === id ? { ...p, price } : p) } }));
+    else if (type === 'ceramic') setProducts(prev => ({ ...prev, ceramic: { ...prev.ceramic, products: prev.ceramic.products.map(p => p.id === id ? { ...p, price } : p) } }));
   };
 
   return (
     <div className="space-y-8 pb-20">
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Fiyat Ayarları</h2>
-          <p className="text-gray-500 text-sm">Hizmet ve parça fiyatlarını buradan güncelleyebilirsiniz.</p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-          <Save size={20} /> <span>Kaydet</span>
-        </button>
+        <h2 className="text-2xl font-bold text-gray-800">Fiyat Ayarları</h2>
+        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"><Save size={20} /> <span>Kaydet</span></button>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* PPF */}
         <div className="bg-white p-6 rounded-lg shadow border border-purple-100">
           <div className="flex items-center gap-2 mb-4 text-purple-700"><Shield size={24} /><h3 className="text-xl font-bold">PPF Fiyatları</h3></div>
-          <div className="space-y-3">
-            {products.ppf.series.map(s => (
-              <div key={s.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span className="font-medium">{s.name}</span>
-                <div className="flex items-center gap-1"><span className="text-gray-400">₺</span>
-                  <input type="number" value={s.basePrice} onChange={e => updatePrice('ppf', s.id, e.target.value)} className="w-20 p-1 border rounded text-right font-bold text-purple-700"/>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="space-y-3">{products.ppf.series.map(s => (<div key={s.id} className="flex justify-between items-center p-2 bg-gray-50 rounded"><span className="font-medium">{s.name}</span><div className="flex items-center gap-1"><span className="text-gray-400">₺</span><input type="number" value={s.basePrice} onChange={e => updatePrice('ppf', s.id, e.target.value)} className="w-20 p-1 border rounded text-right font-bold text-purple-700"/></div></div>))}</div>
         </div>
-
-        {/* Parçalar */}
         <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
           <div className="flex items-center gap-2 mb-4 text-gray-700"><Car size={24} /><h3 className="text-xl font-bold">Parça Fiyatları</h3></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
-            {parts.map(p => (
-              <div key={p.id} className="flex justify-between items-center p-2 border rounded hover:bg-gray-50">
-                <span className="text-sm">{p.name}</span>
-                <input type="number" value={p.price} onChange={e => updatePrice('part', p.id, e.target.value)} className="w-16 p-1 border rounded text-right text-sm"/>
-              </div>
-            ))}
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">{parts.map(p => (<div key={p.id} className="flex justify-between items-center p-2 border rounded hover:bg-gray-50"><span className="text-sm">{p.name}</span><input type="number" value={p.price} onChange={e => updatePrice('part', p.id, e.target.value)} className="w-16 p-1 border rounded text-right text-sm"/></div>))}</div>
         </div>
-
-        {/* Cam Filmi */}
         <div className="bg-white p-6 rounded-lg shadow border border-blue-100">
-          <div className="flex items-center gap-2 mb-4 text-blue-700"><Sun size={24} /><h3 className="text-xl font-bold">Cam Filmi Fiyatları</h3></div>
-          <div className="space-y-3">
-            {products.windowFilm.products.map(p => (
-              <div key={p.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span className="font-medium">{p.name}</span>
-                <div className="flex items-center gap-1"><span className="text-gray-400">₺</span>
-                  <input type="number" value={p.price} onChange={e => updatePrice('window', p.id, e.target.value)} className="w-20 p-1 border rounded text-right font-bold text-blue-700"/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Seramik */}
-        <div className="bg-white p-6 rounded-lg shadow border border-green-100">
-          <div className="flex items-center gap-2 mb-4 text-green-700"><Layers size={24} /><h3 className="text-xl font-bold">Seramik Fiyatları</h3></div>
-          <div className="space-y-3">
-            {products.ceramic.products.map(p => (
-              <div key={p.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span className="font-medium">{p.name}</span>
-                <div className="flex items-center gap-1"><span className="text-gray-400">₺</span>
-                  <input type="number" value={p.price} onChange={e => updatePrice('ceramic', p.id, e.target.value)} className="w-20 p-1 border rounded text-right font-bold text-green-700"/>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="flex items-center gap-2 mb-4 text-blue-700"><Sun size={24} /><h3 className="text-xl font-bold">Cam Filmi</h3></div>
+          <div className="space-y-3">{products.windowFilm.products.map(p => (<div key={p.id} className="flex justify-between items-center p-2 bg-gray-50 rounded"><span className="font-medium">{p.name}</span><div className="flex items-center gap-1"><span className="text-gray-400">₺</span><input type="number" value={p.price} onChange={e => updatePrice('window', p.id, e.target.value)} className="w-20 p-1 border rounded text-right font-bold text-blue-700"/></div></div>))}</div>
         </div>
       </div>
     </div>
   );
 };
 
-
 // --- ANA DASHBOARD ---
 const Dashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState("orders");
-  
-  // Veriler
   const [orders, setOrders] = useState([]);
   const [staff, setStaff] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [dashStats, setDashStats] = useState(null);
   const [products, setProducts] = useState(olexProducts);
   const [parts, setParts] = useState(carParts);
-
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Modallar
   const [showWizard, setShowWizard] = useState(false);
   const [showOrderDetail, setShowOrderDetail] = useState(null);
   const [showStaffDetail, setShowStaffDetail] = useState(null);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
 
-  // --- VERİ ÇEKME ---
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setErrorMsg(null);
-    
     try {
       const stats = await dashboardService.getStats();
       setDashStats(stats);
@@ -298,14 +187,13 @@ const Dashboard = ({ user, onLogout }) => {
         id: o.id || o.Id,
         customer: o.customerInfo || o.CustomerInfo || "Misafir",
         vehicle: o.vehicleInfo || o.VehicleInfo || "Araç Yok",
-        // PLAKA DÜZELTME: Backend'den gelen tüm olası varyasyonlar
         plate: o.VehiclePlate || o.vehiclePlate || o.Plate || o.plate || "---",
         status: o.Status || o.status || "Pending",
         date: safeDate(o.Date || o.date || o.TransactionDate),
         totalPrice: o.TotalPrice || o.totalPrice || 0,
         services: o.SummaryList || o.summaryList || [],
         assignedStaff: o.Personnels ? o.Personnels.map(p => ({ id: p.Id, name: p.FullName || `${p.FirstName} ${p.LastName}` })) : [],
-      })) : []);
+      })).sort((a, b) => b.id - a.id) : []);
 
       const staffData = await personnelService.getAll();
       setStaff(Array.isArray(staffData) ? staffData.map(p => ({
@@ -313,19 +201,18 @@ const Dashboard = ({ user, onLogout }) => {
         name: p.FullName || p.fullName || `${p.FirstName || p.firstName || ''} ${p.LastName || p.lastName || ''}`.trim(),
         role: p.Position || p.position || "Personel",
         salary: p.Salary || p.salary || 0,
-      })) : []);
+      })).sort((a, b) => b.id - a.id) : []);
 
       const expensesData = await expenseService.getAll();
       setExpenses(Array.isArray(expensesData) ? expensesData.map(e => ({
         id: e.id || e.Id,
-        // GELİR/GİDER DÜZELTME: Type 1 gelirse gelir, 0 ise gider
         type: (e.Type === 1 || e.type === 1 || e.IsIncome === true) ? "income" : "expense",
         title: e.Title || e.title || e.Description,
         description: e.Description || e.description,
         amount: e.Amount || e.amount || 0,
         date: safeDate(e.Date || e.date),
         category: e.Category || e.category || ((e.Type === 1 || e.type === 1) ? "Gelir" : "Gider")
-      })).sort((a, b) => new Date(b.date) - new Date(a.date)) : []);
+      })).sort((a, b) => b.id - a.id) : []);
 
     } catch (error) {
       console.error("Veri çekme hatası:", error);
@@ -337,7 +224,6 @@ const Dashboard = ({ user, onLogout }) => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // --- HANDLERS ---
   const handleDeleteOrder = async (id) => {
     if (window.confirm("Silmek istediğinize emin misiniz?")) {
       await orderService.delete(id);
@@ -346,7 +232,7 @@ const Dashboard = ({ user, onLogout }) => {
   };
 
   const handleDeleteStaff = async (id) => {
-    if (window.confirm("Bu personeli silmek istediğinize emin misiniz?")) {
+    if (window.confirm("Silmek istediğinize emin misiniz?")) {
       await personnelService.delete(id);
       fetchData();
     }
@@ -373,7 +259,7 @@ const Dashboard = ({ user, onLogout }) => {
       title: data.category,
       description: data.description,
       amount: parseFloat(data.amount),
-      type: data.type === "income" ? 1 : 0, // 1: Gelir, 0: Gider
+      type: data.type === "income" ? 1 : 0,
       date: new Date(data.date).toISOString()
     });
     setShowAddExpense(false);
