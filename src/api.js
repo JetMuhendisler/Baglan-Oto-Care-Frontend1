@@ -1,62 +1,90 @@
 import axios from "axios";
 
+// Backend adresinizin doğru olduğundan emin olun
 const BASE_URL = "https://localhost:7047";
 
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-}, (error) => Promise.reject(error));
+// Request Interceptor: Token varsa header'a ekler
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
+// Response Interceptor: Backend'den gelen veriyi sadeleştirir
 api.interceptors.response.use(
   (response) => {
-    // Backend { Data: ... } dönüyorsa sadece Data'yı al
+    // Backend { Data: ... } şeklinde dönüyorsa Data'yı, yoksa direkt response.data'yı al
     if (response.data && response.data.Data !== undefined) return response.data.Data;
     if (response.data && response.data.data !== undefined) return response.data.data;
     return response.data;
   },
   (error) => {
+    console.error("API Hatası Detay:", error.response || error.message);
+    
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
-      window.location.href = "/";
+      localStorage.removeItem("user");
+      // Sadece dashboard'daysak redirect yap, login'de yapma (sonsuz döngü olmasın)
+      if (window.location.pathname !== "/") {
+        window.location.href = "/";
+      }
     }
     return Promise.reject(error);
   }
 );
 
-// İSİMLENDİRMELER DÜZELTİLDİ:
+// --- SERVİSLER ---
+
 export const authService = {
-  login: async (username, password) => await api.post("/api/auth/login", { username, password }),
+  login: async (username, password) => {
+    // LoginDto backend'de { Username, Password } bekliyor
+    return await api.post("/api/auth/login", { Username: username, Password: password });
+  },
+  register: async (data) => {
+    return await api.post("/api/auth/register", data);
+  },
 };
 
 export const orderService = {
-  getAll: async () => await api.get("/api/siparis"),
-  create: async (data) => await api.post("/api/siparis", data),
-  delete: async (id) => await api.delete(`/api/siparis/${id}`),
-  search: async (text) => await api.get(`/api/siparis/ara/${text}`),
-  update: async (data) => await api.put("/api/siparis/guncelle", data), // Sipariş güncelleme
+  getAll: () => api.get("/api/siparis"),
+  create: (data) => api.post("/api/siparis", data),
+  delete: (id) => api.delete(`/api/siparis/${id}`),
+  search: (text) => api.get(`/api/siparis/ara/${text}`),
+  update: (data) => api.put("/api/siparis/guncelle", data),
 };
 
-// Burada "staffService" değil "personnelService" kullanıyoruz
 export const personnelService = {
-  getAll: async () => await api.get("/api/personel"),
-  create: async (data) => await api.post("/api/personel", data),
+  getAll: () => api.get("/api/personel"),
+  create: (data) => api.post("/api/personel", data),
+  update: (data) => api.put("/api/personel", data),
+  delete: (id) => api.delete(`/api/personel/${id}`),
 };
 
-// Burada "financeService" değil "expenseService" kullanıyoruz
 export const expenseService = {
-  getAll: async () => await api.get("/api/ek-muhasebe"), // getExpenses yerine getAll standartlaştı
-  create: async (data) => await api.post("/api/ek-muhasebe", data),
-  delete: async (id) => await api.delete(`/api/ek-muhasebe/${id}`),
+  getAll: () => api.get("/api/ek-muhasebe"),
+  create: (data) => api.post("/api/ek-muhasebe", data),
+  delete: (id) => api.delete(`/api/ek-muhasebe/${id}`),
 };
 
 export const dashboardService = {
-  getStats: async () => await api.get("/api/dashboard/ozet"),
+  getStats: () => api.get("/api/dashboard/ozet"),
+};
+
+export const serviceDefService = {
+  getAll: () => api.get("/api/hizmet-tanimlari"),
+  create: (data) => api.post("/api/hizmet-tanimlari", data),
 };
 
 export default api;

@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from "react";
-import LoginView from "./views/Login"; // Düzeltildi: "./components/..." yerine LoginView'i direkt import ediyoruz
-import Dashboard from "./views/Dashboard"; // views klasöründen çağırıyoruz
-import { olexProducts as initialProducts, carParts as initialParts } from "./data";
+import LoginView from "./views/Login";
+import Dashboard from "./views/Dashboard";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Ayarlar verilerini App'te tutmak ideal
-  const [products, setProducts] = useState(initialProducts);
-  const [parts, setParts] = useState(initialParts);
+  // Uygulama açılınca LocalStorage kontrolü
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    
+    if (token && savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+        setIsAuthenticated(true);
+      } catch  {
+        // Hatalı veri varsa temizle
+        localStorage.clear();
+      }
+    }
+  }, []);
 
   const handleLogin = (userData) => {
+    // Token ve User bilgisini kaydet
     if (userData.token) {
         localStorage.setItem("token", userData.token);
         localStorage.setItem("user", JSON.stringify(userData));
@@ -27,30 +39,14 @@ const App = () => {
     setIsAuthenticated(false);
   };
 
-  // Sayfa yenilendiğinde kullanıcıyı kontrol et
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const savedUser = JSON.parse(localStorage.getItem("user"));
-    if (token && savedUser) {
-      setUser(savedUser);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-
-  if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} />;
-  }
-
   return (
-    <Dashboard
-      user={user}
-      onLogout={handleLogout} 
-      products={products}
-      setProducts={setProducts}
-      parts={parts}
-      setParts={setParts}
-    />
+    <>
+      {isAuthenticated ? (
+        <Dashboard user={user} onLogout={handleLogout} />
+      ) : (
+        <LoginView onLogin={handleLogin} />
+      )}
+    </>
   );
 };
 
