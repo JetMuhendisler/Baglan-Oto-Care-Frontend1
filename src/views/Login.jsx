@@ -60,18 +60,18 @@ const LoginView = ({ onLogin }) => {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+            <input type="text" name="username" id="username" value={username} onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="admin" required />
+              placeholder="admin" required autoComplete="username" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            <input type="password" name="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="••••••••" required />
+              placeholder="••••••••" required autoComplete="current-password" />
           </div>
           <button type="submit" disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2 disabled:opacity-70">

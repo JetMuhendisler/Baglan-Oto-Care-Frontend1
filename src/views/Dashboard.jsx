@@ -224,27 +224,43 @@ const Dashboard = ({ user, onLogout }) => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDeleteOrder = async (id) => {
+ const handleDeleteOrder = async (id) => {
     if (window.confirm("Silmek istediğinize emin misiniz?")) {
-      await orderService.delete(id);
-      fetchData();
+      try {
+        await orderService.delete(id);
+        alert("Sipariş başarıyla silindi!");
+        fetchData();
+      } catch (err) {
+        console.error("Silme hatası:", err);
+        alert("Silme başarısız: " + (err.response?.data?.Message || err.message));
+      }
     }
   };
-
-  const handleDeleteStaff = async (id) => {
+ const handleDeleteStaff = async (id) => {
     if (window.confirm("Silmek istediğinize emin misiniz?")) {
-      await personnelService.delete(id);
-      fetchData();
+      try {
+        await personnelService.delete(id);
+        alert("Personel başarıyla silindi!");
+        fetchData();
+      } catch (err) {
+        console.error("Silme hatası:", err);
+        alert("Silme başarısız: " + (err.response?.data?.Message || err.message));
+      }
     }
   };
 
   const handleDeleteExpense = async (id) => {
     if (window.confirm("Silmek istediğinize emin misiniz?")) {
-      await expenseService.delete(id);
-      fetchData();
+      try {
+        await expenseService.delete(id);
+        alert("Kayıt başarıyla silindi!");
+        fetchData();
+      } catch (err) {
+        console.error("Silme hatası:", err);
+        alert("Silme başarısız: " + (err.response?.data?.Message || err.message));
+      }
     }
   };
-
   const handleAddStaff = async (data) => {
     const nameParts = data.name.trim().split(" ");
     const lastName = nameParts.pop() || "";
