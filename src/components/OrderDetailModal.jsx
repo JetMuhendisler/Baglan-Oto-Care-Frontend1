@@ -9,15 +9,21 @@ const OrderDetailModal = ({ order, staff, onClose, onSave }) => {
       order.status === "Completed" || order.status === "Tamamlandı" ? 3 : 
       order.status === "InProgress" || order.status === "İşlemde" ? 2 : 1
   );
-  const [selectedStaffIds, setSelectedStaffIds] = useState([]);
+  // Fix: Initialize with existing assigned personnel (prioritize personnelIds from backend)
+  const [selectedStaffIds, setSelectedStaffIds] = useState(
+      order.personnelIds && order.personnelIds.length > 0 
+        ? order.personnelIds.map(id => Number(id))
+        : (order.assignedStaff ? order.assignedStaff.map(p => Number(p.id)) : [])
+  );
 
   const handleSave = async () => {
       try {
+          // Ensure IDs are sent as integers
           const payload = {
               orderId: order.id,
               description: description,
               statusId: parseInt(status),
-              personnelIds: selectedStaffIds
+              personnelIds: selectedStaffIds.map(id => Number(id))
           };
           
           // API çağrısı
@@ -65,7 +71,7 @@ const OrderDetailModal = ({ order, staff, onClose, onSave }) => {
                                     else setSelectedStaffIds(selectedStaffIds.filter(id => id !== p.id));
                                 }}
                             />
-                            <span>{p.fullName || p.name}</span>
+                            <span>{p.name}</span>
                         </label>
                     )) : <p className="text-gray-500 text-sm">Personel listesi boş.</p>}
                 </div>

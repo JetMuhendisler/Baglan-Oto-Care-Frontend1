@@ -33,10 +33,15 @@ const App = () => {
   };
 
   const handleLogout = () => {
+    // Tüm storage'ı temizle
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.clear(); // Session storage'ı da temizle
     setUser(null);
     setIsAuthenticated(false);
+    
+    // Sayfayı yenile ve login'e yönlendir
+    window.location.href = "/";
   };
 
   return (

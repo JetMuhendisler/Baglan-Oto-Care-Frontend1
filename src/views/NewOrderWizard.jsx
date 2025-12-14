@@ -78,8 +78,9 @@ const NewOrderWizard = ({ onClose, onSuccess }) => {
     customerName: "", customerPhone: "", customerEmail: "",
     plateNumber: "", brand: "", model: "", color: "", year: "",
     selectedServices: [], 
-    appointmentDate: "", appointmentTime: "09:00",
-    paymentMethod: "Nakit", isPaid: false
+    appointmentDate: new Date().toISOString().split('T')[0], appointmentTime: "09:00",
+    paymentMethod: "Nakit", isPaid: false,
+    finalPrice: null
   });
 
   // --- HANDLERS ---
@@ -139,7 +140,7 @@ const NewOrderWizard = ({ onClose, onSuccess }) => {
         year: formData.year,
         personnelId: 0,
         date: new Date(`${formData.appointmentDate}T${formData.appointmentTime}`).toISOString(),
-        totalPrice: formData.selectedServices.reduce((sum, item) => sum + item.price, 0),
+        totalPrice: formData.finalPrice !== null ? Number(formData.finalPrice) : formData.selectedServices.reduce((sum, item) => sum + item.price, 0),
         paymentMethod: formData.paymentMethod,
         isPaid: formData.isPaid,
         selectedServices: formData.selectedServices
@@ -275,26 +276,72 @@ const NewOrderWizard = ({ onClose, onSuccess }) => {
   );
 
   // ADIM 3: RANDEVU & ÖDEME
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let i = 8; i <= 19; i++) {
+        slots.push(`${i < 10 ? '0'+i : i}:00`);
+        slots.push(`${i < 10 ? '0'+i : i}:30`);
+    }
+    return slots;
+  };
+
+  const calculateTotal = () => formData.selectedServices.reduce((sum, item) => sum + item.price, 0);
+
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
         <div>
           <h3 className="font-bold text-lg mb-3 flex items-center gap-2"><Calendar/> Randevu</h3>
-          <input type="date" className="w-full border p-3 rounded-lg mb-2" 
-            value={formData.appointmentDate} onChange={e => handleChange("appointmentDate", e.target.value)} />
-          <input type="time" className="w-full border p-3 rounded-lg" 
-            value={formData.appointmentTime} onChange={e => handleChange("appointmentTime", e.target.value)} />
+          
+          <div className="bg-white border rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tarih Seçimi</label>
+              <input type="date" className="w-full border p-3 rounded-lg mb-4" 
+                value={formData.appointmentDate} onChange={e => handleChange("appointmentDate", e.target.value)} />
+
+              <label className="block text-sm font-medium text-gray-700 mb-2">Saat Seçimi</label>
+              <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                  {generateTimeSlots().map(time => (
+                      <button key={time}
+                          onClick={() => handleChange("appointmentTime", time)}
+                          className={`py-2 px-1 rounded text-sm text-center border ${formData.appointmentTime === time ? "bg-blue-600 text-white border-blue-600" : "hover:bg-gray-50 border-gray-200"}`}>
+                          {time}
+                      </button>
+                  ))}
+              </div>
+          </div>
         </div>
         <div>
           <h3 className="font-bold text-lg mb-3 flex items-center gap-2"><CreditCard/> Ödeme</h3>
+          
+          <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
+              <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">Hizmet Toplamı:</span>
+                  <span className="font-bold text-lg">₺{calculateTotal()}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white p-2 rounded border">
+                  <span className="text-blue-800 font-semibold">Tutar (Pazarlıklı):</span>
+                  <input type="number" 
+                      className="w-32 text-right font-bold text-blue-800 outline-none"
+                      placeholder={calculateTotal()}
+                      value={formData.finalPrice !== null ? formData.finalPrice : calculateTotal()}
+                      onChange={e => handleChange("finalPrice", e.target.value)}
+                  />
+              </div>
+              <p className="text-xs text-blue-400 mt-1">* Nihai tutarı değiştirmek için kutucuğa yazın.</p>
+          </div>
+
           <div className="space-y-2">
-            {["Nakit", "Kredi Kartı", "Havale"].map(m => (
-              <label key={m} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer ${formData.paymentMethod === m ? "bg-blue-50 border-blue-500" : ""}`}>
-                <input type="radio" name="payment" checked={formData.paymentMethod === m} onChange={() => handleChange("paymentMethod", m)} />
-                {m}
-              </label>
-            ))}
-            <label className="flex items-center gap-2 mt-4">
+            <h4 className="font-medium text-gray-700">Ödeme Yöntemi</h4>
+            <div className="grid grid-cols-3 gap-2">
+                {["Nakit", "Kredi Kartı", "Havale"].map(m => (
+                <label key={m} className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${formData.paymentMethod === m ? "bg-blue-50 border-blue-500 text-blue-700" : ""}`}>
+                    <input type="radio" name="payment" className="hidden" checked={formData.paymentMethod === m} onChange={() => handleChange("paymentMethod", m)} />
+                    <span className="font-medium">{m}</span>
+                </label>
+                ))}
+            </div>
+            
+            <label className="flex items-center gap-2 mt-4 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input type="checkbox" className="w-5 h-5" checked={formData.isPaid} onChange={e => handleChange("isPaid", e.target.checked)} />
               <span className="font-medium">Ödeme şimdi alındı mı?</span>
             </label>

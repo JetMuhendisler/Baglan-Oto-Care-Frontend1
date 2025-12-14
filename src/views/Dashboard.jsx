@@ -91,7 +91,20 @@ const StaffList = ({ staff, onAdd, onDetail, onDelete }) => {
 };
 
 // 3. MUHASEBE LİSTESİ
-const AccountingView = ({ expenses, onAdd, onDelete }) => {
+const AccountingView = ({ expenses, orders, onAdd, onDelete, onDeleteOrder }) => {
+  const combinedItems = [
+    ...expenses.map(e => ({ ...e, source: 'expense' })),
+    ...orders.filter(o => o.status === "Completed" || o.status === "Tamamlandı").map(o => ({
+      id: o.id,
+      date: o.date,
+      title: `${o.plate} - ${o.customer}`,
+      category: "İş Emri",
+      amount: o.totalPrice,
+      type: "income",
+      source: 'order'
+    }))
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -104,19 +117,23 @@ const AccountingView = ({ expenses, onAdd, onDelete }) => {
             <tr>{["No", "Tarih", "Açıklama", "Kategori", "Tutar", ""].map(h => <th key={h} className="p-3">{h}</th>)}</tr>
           </thead>
           <tbody className="divide-y text-sm">
-            {expenses.map(e => (
-              <tr key={e.id} className="hover:bg-gray-50">
-                <td className="p-3 font-mono text-gray-400">#{e.id}</td>
-                <td className="p-3 text-gray-600">{e.date}</td>
-                <td className="p-3 font-medium">{e.title}</td>
-                <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${e.type === "income" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{e.category}</span></td>
-                <td className={`p-3 font-bold ${e.type === "income" ? "text-green-600" : "text-red-600"}`}>{e.type === "income" ? "+" : "-"}₺{e.amount.toLocaleString()}</td>
-                <td className="p-3 text-right"><button onClick={() => onDelete(e.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button></td>
+            {combinedItems.map((item, idx) => (
+              <tr key={`${item.source}-${item.id}-${idx}`} className="hover:bg-gray-50">
+                <td className="p-3 font-mono text-gray-400">#{item.id}</td>
+                <td className="p-3 text-gray-600">{item.date}</td>
+                <td className="p-3 font-medium">{item.title}</td>
+                <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${item.type === "income" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{item.category}</span></td>
+                <td className={`p-3 font-bold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}>{item.type === "income" ? "+" : "-"}₺{item.amount?.toLocaleString()}</td>
+                <td className="p-3 text-right">
+                    <button onClick={() => item.source === 'order' ? onDeleteOrder(item.id) : onDelete(item.id)} className="text-red-400 hover:text-red-600">
+                        <Trash2 size={16}/>
+                    </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {expenses.length === 0 && <p className="text-center text-gray-500 py-8">Kayıt bulunamadı.</p>}
+        {combinedItems.length === 0 && <p className="text-center text-gray-500 py-8">Kayıt bulunamadı.</p>}
       </div>
     </div>
   );
@@ -192,16 +209,31 @@ const Dashboard = ({ user, onLogout }) => {
         date: safeDate(o.Date || o.date || o.TransactionDate),
         totalPrice: o.TotalPrice || o.totalPrice || 0,
         services: o.SummaryList || o.summaryList || [],
+        personnelIds: o.PersonnelIds || o.personnelIds || [], // Backend'den gelen personel ID'leri
         assignedStaff: o.Personnels ? o.Personnels.map(p => ({ id: p.Id, name: p.FullName || `${p.FirstName} ${p.LastName}` })) : [],
       })).sort((a, b) => b.id - a.id) : []);
 
       const staffData = await personnelService.getAll();
-      setStaff(Array.isArray(staffData) ? staffData.map(p => ({
-        id: p.id || p.Id,
-        name: p.FullName || p.fullName || `${p.FirstName || p.firstName || ''} ${p.LastName || p.lastName || ''}`.trim(),
-        role: p.Position || p.position || "Personel",
-        salary: p.Salary || p.salary || 0,
-      })).sort((a, b) => b.id - a.id) : []);
+      console.log("🔍 Backend Personnel Data:", staffData); // Debug: See raw data
+      setStaff(Array.isArray(staffData) ? staffData.map(p => {
+        // Try to extract name from various possible fields
+        const fullName = p.FullName || p.fullName;
+        const firstName = p.FirstName || p.firstName || p.Ad || p.ad;
+        const lastName = p.LastName || p.lastName || p.Soyad || p.soyad;
+        const combinedName = `${firstName || ''} ${lastName || ''}`.trim();
+        const singleName = p.Name || p.name || p.Username || p.username;
+        
+        const finalName = fullName || combinedName || singleName || `Personel #${p.id || p.Id}`;
+        
+        console.log(`👤 Personnel ${p.id || p.Id}:`, { fullName, firstName, lastName, singleName, finalName, raw: p }); // Debug each person
+        
+        return {
+          id: p.id || p.Id,
+          name: finalName,
+          role: p.Position || p.position || "Personel",
+          salary: p.Salary || p.salary || 0,
+        };
+      }).sort((a, b) => b.id - a.id) : []);
 
       const expensesData = await expenseService.getAll();
       setExpenses(Array.isArray(expensesData) ? expensesData.map(e => ({
@@ -282,11 +314,14 @@ const Dashboard = ({ user, onLogout }) => {
     fetchData();
   };
 
-  const stats = dashStats || {
+  // Fix: Always calculate stats from local orders to ensure real-time updates
+  const stats = {
     totalOrders: orders.length,
     completedOrders: orders.filter(o => o.status === "Completed" || o.status === "Tamamlandı").length,
-    pendingOrders: orders.filter(o => o.status === "Pending" || o.status === "Beklemede").length,
-    totalRevenue: orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0)
+    pendingOrders: orders.filter(o => o.status === "Pending" || o.status === "Beklemede" || o.status === "İşlemde").length,
+    totalRevenue: orders
+        .filter(o => o.status === "Completed" || o.status === "Tamamlandı")
+        .reduce((sum, o) => sum + (o.totalPrice || 0), 0) // Only count completed revenue
   };
 
   return (
@@ -321,7 +356,7 @@ const Dashboard = ({ user, onLogout }) => {
             <>
               {activeTab === "orders" && <OrderList orders={orders} onEdit={(o) => setShowOrderDetail(o)} onDelete={handleDeleteOrder} />}
               {activeTab === "staff" && <StaffList staff={staff} onAdd={() => setShowAddStaff(true)} onDetail={(p) => setShowStaffDetail(p)} onDelete={handleDeleteStaff} />}
-              {activeTab === "accounting" && <AccountingView expenses={expenses} onAdd={() => setShowAddExpense(true)} onDelete={handleDeleteExpense} />}
+              {activeTab === "accounting" && <AccountingView expenses={expenses} orders={orders} onAdd={() => setShowAddExpense(true)} onDelete={handleDeleteExpense} onDeleteOrder={handleDeleteOrder} />}
               {activeTab === "settings" && <SettingsPanel products={products} setProducts={setProducts} parts={parts} setParts={setParts} />}
             </>
           )}
