@@ -64,5 +64,35 @@ export const expenseService = {
 export const dashboardService = {
   getStats: () => api.get("/api/dashboard/ozet"),
 };
+// src/api.js dosyasının mevcut kodlarının altına ekleyin:
 
+export const catalogService = {
+  // GET
+  getAllCategories: () => api.get("/api/Catalog/categories"),
+  getAllProducts: () => api.get("/api/Catalog/products"),
+
+  // CREATE (POST)
+  createCategory: (data) => api.post("/api/Catalog/categories", data),
+  
+  // Ürün oluştururken (HasMicron bilgisi burada gider)
+  createProduct: (data) => api.post("/api/Catalog/products", data),
+
+  // Varyant oluştururken (Body içinde { productId: 1, hasSubParts: true ... } gider)
+  createVariant: (data) => api.post("/api/Catalog/variants", data),
+
+  // Parça oluştururken (Body içinde { variantId: 1, price: 3000 ... } gider)
+  createPartPrice: (data) => api.post("/api/Catalog/parts", data),
+
+  // UPDATE (PUT)
+  updateCategory: (data) => api.put("/api/Catalog/categories", data),
+  updateProduct: (data) => api.put("/api/Catalog/products", data),
+  updateVariant: (data) => api.put("/api/Catalog/variants", data),
+  updatePartPrice: (data) => api.put("/api/Catalog/parts", data),
+
+  // DELETE
+  deleteCategory: (id) => api.delete(`/api/Catalog/categories/${id}`),
+  deleteProduct: (id) => api.delete(`/api/Catalog/products/${id}`),
+  deleteVariant: (id) => api.delete(`/api/Catalog/variants/${id}`),
+  deletePartPrice: (id) => api.delete(`/api/Catalog/parts/${id}`),
+};
 export default api;
